@@ -119,7 +119,7 @@ Capistrano::Configuration.instance(:must_exist).load do
     task :update do
       transaction do
         update_code
-        symlink
+        create_symlink
 	cake.cache.clear
       end
     end
@@ -160,7 +160,7 @@ Capistrano::Configuration.instance(:must_exist).load do
       task (which performs a complete deploy, including `restart`) or the 'update` \
       task (which does everything except `restart`).
     DESC
-    task :symlink, :except => { :no_release => true } do
+    task :create_symlink, :except => { :no_release => true } do
       on_rollback do
         if previous_release
           run "rm -f #{current_path}; ln -s #{previous_release} #{current_path}; true"
@@ -171,7 +171,7 @@ Capistrano::Configuration.instance(:must_exist).load do
       run "rm -rf #{latest_release}/tmp" if (!remote_file_exists?("#{latest_release}/tmp/empty"))
       run "ln -s #{shared_path}/system #{latest_release}/webroot/system && ln -s #{shared_path}/tmp #{latest_release}/tmp";
       run "rm -f #{current_path} && ln -s #{latest_release} #{current_path}"
-      cake.database.symlink if (remote_file_exists?(database_path))
+      cake.database.create_symlink if (remote_file_exists?(database_path))
     end
 
     desc <<-DESC
@@ -498,7 +498,7 @@ Capistrano::Configuration.instance(:must_exist).load do
         result = ERB.new(template).result(binding)
 
         put(result, "#{database_path}", :mode => 0644, :via => :scp)
-        after("deploy:symlink", "cake:database:symlink")
+        after("deploy:create_symlink", "cake:database:create_symlink")
       end
       desc <<-DESC
         Creates MySQL database, database user and grants permissions on DB servers
@@ -537,7 +537,7 @@ Capistrano::Configuration.instance(:must_exist).load do
         Creates required CakePHP's APP/config/database.php as a symlink to \
         #{deploy_to}/shared/config/database.php
       DESC
-      task :symlink, :roles => :web, :except => { :no_release => true } do
+      task :create_symlink, :roles => :web, :except => { :no_release => true } do
         run "#{try_sudo} rm -f #{current_path}/#{database_partial_path} && #{try_sudo} ln -s #{database_path} #{current_path}/#{database_partial_path}"
       end
     end
